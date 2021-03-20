@@ -23,5 +23,4 @@ Note:
 - store values and info about the trial into the hdf5 file
 - read hdf5 to see if the procedure is correct
 - other???
-- finish presentation 
-
+- finish presentation (work in progress, first version coming soon)
