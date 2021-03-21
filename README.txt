@@ -4,7 +4,7 @@ THE PROCESSING OF SUBJECT AND OBJECT RELATIVE CLAUSES IN GERMAN
 
 
 Authors:
-	Micaela Vieira, Nadja Näf
+	Micaela Vieira
 
 Steps:
 1. Create a txt file with the inputs for the eye tracker experiment (Data/input_data.txt);
