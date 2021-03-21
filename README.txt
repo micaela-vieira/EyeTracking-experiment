@@ -3,7 +3,7 @@ Project for the course "21FS 521d505a Eye tracking: From experiment design to st
 THE PROCESSING OF SUBJECT AND OBJECT RELATIVE CLAUSES IN GERMAN
 
 
-Authors:
+Author:
 	Micaela Vieira
 
 Steps:
