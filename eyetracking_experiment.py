@@ -102,7 +102,7 @@ def fixation_cross(window: visual.window.Window, x_pos_cross: float, cross_size:
     window.flip()
     return
 
-def text_and_dot(window: visual.window.Window, my_text: str, x_pos_text: float, x_pos_dot: float, y_pos_dot: float): 
+def text_and_dots(window: visual.window.Window, my_text: str, x_pos_text: float, x_pos_dot: float, y_pos_dot_1: float, y_pos_dot_2: float): 
     """
     Purpose
     -------
@@ -118,8 +118,10 @@ def text_and_dot(window: visual.window.Window, my_text: str, x_pos_text: float, 
         x-position of the text in pixels.
     x_pos_dot : float
         x-position of the dot in pixels.
-    y_pos_dot : float
-        y-position of the dot in pixels.
+    y_pos_dot_1 : float
+        y-position of the dot 1 in pixels.
+    y_pos_dot_2 : float
+        y-position of the dot 2 in pixels.
 
     Returns
     -------
@@ -136,15 +138,23 @@ def text_and_dot(window: visual.window.Window, my_text: str, x_pos_text: float, 
                           align_horz='left',
                           align_vert='bottom',
                           units='pix')
-    dot = visual.Circle(window,
+    dot_1 = visual.Circle(window,
                         lineColor="white",
                         fillColor="white",
                         radius=2,
                         edges=128,
-                        pos=(x_pos_dot, y_pos_dot),
+                        pos=(x_pos_dot, y_pos_dot_1),
+                        units='pix')
+    dot_2 = visual.Circle(window,
+                        lineColor="white",
+                        fillColor="white",
+                        radius=2,
+                        edges=128,
+                        pos=(x_pos_dot, y_pos_dot_2),
                         units='pix')
     text.draw()
-    dot.draw()
+    dot_1.draw()
+    dot_2.draw()
     window.flip()
     return
 
@@ -211,24 +221,33 @@ def device_for_experiment(window: visual.window.Window, io_client: client.ioHubC
         window.setMouseVisible(True)
     return experiment_device
 
-def fixation_routine(device: client.ioHubDeviceView, x_pos_min: float, x_pos_max: float, y_pos_min: float, y_pos_max: float, time_fix: float) -> bool:
+def fixation_routine(device: client.ioHubDeviceView, x_pos_min_1: float, x_pos_max_1: float, y_pos_min_1: float, y_pos_max_1: float, x_pos_min_2: float, x_pos_max_2: float, y_pos_min_2: float, y_pos_max_2: float, time_fix: float) -> Tuple[str, bool]:
     """
     Purpose
     -------
-    Determine if a fixation routine is succesful or not.
+    Determine if a fixation routine inside one of the two regions defined by
+    the coordinated is succesful or not.
 
     Parameters
     ----------
     device : client.ioHubDeviceView
         device connecte to ioHub.
-    x_pos_min : float
-        Minimal x-position of the fixation region.
-    x_pos_max : float
-        Maximal x-position of the fixation region.
-    y_pos_min : float
-        Minimal y-position of the fixation region.
-    y_pos_max : float
-        Maximal y-position of the fixation region.
+    x_pos_min_1 : float
+        Minimal x-position of the first fixation region.
+    x_pos_max_1 : float
+        Maximal x-position of the first fixation region.
+    y_pos_min_1 : float
+        Minimal y-position of the first fixation region.
+    y_pos_max_1 : float
+        Maximal y-position of the first fixation region.
+    x_pos_min_2 : float
+        Minimal x-position of the second fixation region.
+    x_pos_max_2 : float
+        Maximal x-position of the second fixation region.
+    y_pos_min_2 : float
+        Minimal y-position of the second fixation region.
+    y_pos_max_2 : float
+        Maximal y-position of the second fixation region.
     time_fix : float
         Minimal time that the experiment should stay without interruptions
         inside the fixation region to define the fixation as succesful.
@@ -237,12 +256,14 @@ def fixation_routine(device: client.ioHubDeviceView, x_pos_min: float, x_pos_max
     -------
     fixation_succesful : bool
         Boolean that confirm if the fixation is passed or failed.
+    region_found : str
+        Indication of which region was found (either 'region1' or 'region2')
     """
     fixation_succesful = False
     time_already_started = False
     #keep fixation false until minimal time is reached
     while fixation_succesful == False:
-        if x_pos_min <= device.getPosition()[0] <= x_pos_max and y_pos_min <= device.getPosition()[1] <= y_pos_max:
+        if (x_pos_min_1 <= device.getPosition()[0] <= x_pos_max_1 and y_pos_min_1 <= device.getPosition()[1] <= y_pos_max_1) or (x_pos_min_2 <= device.getPosition()[0] <= x_pos_max_2 and y_pos_min_2 <= device.getPosition()[1] <= y_pos_max_2):
             correct_position = True
         #if the position is not correct, reset time_already_started
         else:
@@ -258,7 +279,11 @@ def fixation_routine(device: client.ioHubDeviceView, x_pos_min: float, x_pos_max
                 t = core.getTime()
                 if t-initial_time > time_fix:
                     fixation_succesful = True
-    return fixation_succesful
+    if x_pos_min_1 <= device.getPosition()[0] <= x_pos_max_1 and y_pos_min_1 <= device.getPosition()[1] <= y_pos_max_1:
+        region_found = 'region1'
+    else:
+        region_found = 'region2'
+    return fixation_succesful, region_found
 
 
 
@@ -277,7 +302,7 @@ def main():
     fixation_time_for_succesful = 0.3
     eyelink_distance = 70
     output_path = 'events.hdf5'
-    breaks_duration_time = 2
+    breaks_duration_time = 3
     nr_of_stimuli_between_breaks = 5
     
     """
@@ -307,7 +332,7 @@ def main():
         #if the counter for breaks reaches nr_of_stimuli_between_breaks, start break and redo calibration
         if breaks_counter == nr_of_stimuli_between_breaks:
             pause_frame(win, breaks_duration_time)
-            io.sendMessageEvent('End break')
+            io.sendMessageEvent('End break of '+str(breaks_duration_time)+' seconds')
             breaks_counter = 0
             try:
                 experiment_device.runSetupProcedure()
@@ -318,20 +343,26 @@ def main():
         while True:    
             fixation_cross(win, -monitor_width/2+border_margin/2+length_arm_cross/2, length_arm_cross-length_arm_cross/5)
             #if fixation of the cross satisfies the criteria, end the loop and procede
-            fixation_succesful_cross = fixation_routine(experiment_device, -monitor_width/2+border_margin/2-0.5*length_arm_cross, -monitor_width/2+border_margin/2+1.5*length_arm_cross, -2*length_arm_cross-length_arm_cross/5, 0.5*length_arm_cross-length_arm_cross/5, fixation_time_for_succesful)
+            fixation_succesful_cross, _ = fixation_routine(experiment_device, -monitor_width/2+border_margin/2-0.5*length_arm_cross, -monitor_width/2+border_margin/2+1.5*length_arm_cross, -2*length_arm_cross-length_arm_cross/5, 0.5*length_arm_cross-length_arm_cross/5, -monitor_width/2+border_margin/2-0.5*length_arm_cross, -monitor_width/2+border_margin/2+1.5*length_arm_cross, -2*length_arm_cross-length_arm_cross/5, 0.5*length_arm_cross-length_arm_cross/5, fixation_time_for_succesful)
             if fixation_succesful_cross:
                 io.sendMessageEvent('End fixation of the cross')
                 break
-        #start infinite loop for lower right dot
+        #start infinite loop for dots
         while True:
-            text_and_dot(win, list_of_stimuli_text[stimulus_index], -monitor_width+border_margin, monitor_width/2-monitor_width/20, -monitor_height/2+monitor_height/10)
-            #if fixation of the dot satisfies the criteria, end the loop and procede
-            fixation_succesful_dot = fixation_routine(experiment_device, monitor_width/2-monitor_width/10, monitor_width/2, -monitor_height/2, -monitor_height/2+monitor_height/8, fixation_time_for_succesful)
+            text_and_dots(win, list_of_stimuli_text[stimulus_index], -monitor_width+border_margin, monitor_width/2-monitor_width/20, -monitor_height/2+monitor_height/10, monitor_height/2-monitor_height/20)
+            fixation_succesful_dot, found_region = fixation_routine(experiment_device, monitor_width/2-monitor_width/10, monitor_width/2, -monitor_height/2, -monitor_height/2+monitor_height/4, monitor_width/2-monitor_width/10, monitor_width/2, monitor_height/2-monitor_height/4, monitor_height/2, fixation_time_for_succesful)
+            #if fixation of either the lower dot or the higher dot satisfies the criteria, end the loop and procede
             if fixation_succesful_dot:
-                io.sendMessageEvent('End fixation of the dot after stimulus s_'+list_of_stimuli_sentence[stimulus_index]+'v_'+list_of_stimuli_version[stimulus_index])
+                if found_region == 'region1':
+                    io.sendMessageEvent('End fixation of the lower dot after stimulus s_'+list_of_stimuli_sentence[stimulus_index]+'v_'+list_of_stimuli_version[stimulus_index])
+                    #update the counter for breaks
+                    breaks_counter += 1
+                elif found_region == 'region2':
+                    io.sendMessageEvent('End fixation of the higher dot after stimulus s_'+list_of_stimuli_sentence[stimulus_index]+'v_'+list_of_stimuli_version[stimulus_index])
+                    #update the counter for breaks
+                    breaks_counter = nr_of_stimuli_between_breaks
                 break
-        #update the counter for breaks
-        breaks_counter += 1
+        
         
     #close everything
     win.close()
