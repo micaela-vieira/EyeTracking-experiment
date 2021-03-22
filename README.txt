@@ -21,8 +21,6 @@ Note:
 ###########################################
                   TO DO
 ###########################################
-- add pauses selected by user and experimenter
-- add drift corrections
+- add pauses selected by the experimenter
 - add multiple monitors
-- other???
-- finish presentation (work in progress, first version coming soon)
+- finish presentation (work in progress)
